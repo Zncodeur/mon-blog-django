@@ -1,0 +1,174 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}{{ article.titre }}{% endblock %}
+
+{% block content %}
+    <div class="card p-4 mb-4">
+        <a href="{% url 'blog:liste_articles' %}" class="btn btn-sm btn-outline-secondary mb-3 w-25">&larr; Retour</a>
+        
+        <div class="d-flex align-items-center mb-3">
+            {% if article.auteur.profil.avatar %}
+                <img src="{{ article.auteur.profil.avatar.url }}" class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;">
+            {% endif %}
+            <div>
+                <h5 class="mb-0 text-white">
+                    <a href="{% url 'blog:profil' article.auteur.username %}" class="text-decoration-none text-white fw-bold">{{ article.auteur.username }}</a>
+                </h5>
+                <small class="text-muted">{{ article.date_publication|date:"d M Y à H:i" }}</small>
+            </div>
+        </div>
+
+        <h1 class="text-white mb-3">{{ article.titre }}</h1>
+        
+        {% if article.image_couverture %}
+            <img src="{{ article.image_couverture.url }}" class="img-fluid rounded mb-3" alt="...">
+        {% endif %}
+
+        <div class="article-content text-light" style="font-size: 1.1rem; line-height: 1.6;">
+            {{ article.contenu|linebreaks }}
+        </div>
+
+        <hr class="border-secondary my-3">
+        <div class="d-flex justify-content-around text-muted">
+            <button id="btn-like" class="btn btn-link text-decoration-none {% if request.user in article.likes.all %}text-primary{% else %}text-light{% endif %}" data-slug="{{ article.slug }}">
+                <i class="bi bi-hand-thumbs-up"></i> J'aime (<span id="like-count">{{ article.likes.count }}</span>)
+            </button>
+            <button class="btn btn-link text-light text-decoration-none"><i class="bi bi-chat"></i> Commenter</button>
+            <button class="btn btn-link text-light text-decoration-none"><i class="bi bi-share"></i> Partager</button>
+        </div>
+        <hr class="border-secondary my-3">
+    </div>
+
+    <!-- Section Commentaires -->
+    <div class="card p-4 mb-5">
+        <h4 class="text-white mb-4">Commentaires ({{ commentaires|length }})</h4>
+        
+        {% for commentaire in commentaires %}
+            <div class="mb-4">
+                <!-- Commentaire principal -->
+                <div class="d-flex">
+                    {% if commentaire.auteur.profil.avatar %}
+                        <img src="{{ commentaire.auteur.profil.avatar.url }}" class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;">
+                    {% else %}
+                        <div class="rounded-circle me-3 bg-secondary d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                            <span class="text-white fw-bold">{{ commentaire.auteur.username|first|upper }}</span>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="flex-grow-1">
+                        <div class="bg-dark p-3 rounded border border-secondary">
+                            <h6 class="text-white mb-1">
+                                <a href="{% url 'blog:profil' commentaire.auteur.username %}" class="text-decoration-none text-white">{{ commentaire.auteur.username }}</a>
+                            </h6>
+                            <p class="text-light mb-0">{{ commentaire.contenu }}</p>
+                        </div>
+                        
+                        <!-- Boutons d'action du commentaire (J'aime et Répondre) -->
+                        <div class="mt-2 ms-2 d-flex align-items-center">
+                            <small class="text-muted me-3">{{ commentaire.date_creation|date:"d M Y à H:i" }}</small>
+                            
+                            <!-- Bouton J'aime sur le commentaire -->
+                            <button class="btn btn-link text-decoration-none btn-like-comment p-0 me-3 {% if request.user in commentaire.likes.all %}text-primary{% else %}text-light{% endif %}" data-id="{{ commentaire.id }}">
+                                <small><i class="bi bi-hand-thumbs-up"></i> J'aime (<span id="comment-like-count-{{ commentaire.id }}">{{ commentaire.likes.count }}</span>)</small>
+                            </button>
+                            
+                            <!-- Bouton Répondre (ouvre le formulaire en dessous) -->
+                            <button class="btn btn-link text-light text-decoration-none p-0" onclick="document.getElementById('reply-form-{{ commentaire.id }}').classList.toggle('d-none')">
+                                <small><i class="bi bi-reply"></i> Répondre</small>
+                            </button>
+                        </div>
+
+                        <!-- Formulaire de réponse (caché par défaut) -->
+                        <div id="reply-form-{{ commentaire.id }}" class="d-none mt-2 ms-4">
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="parent_id" value="{{ commentaire.id }}">
+                                <div class="input-group">
+                                    <input type="text" name="contenu" class="form-control bg-dark text-white border-secondary" placeholder="Répondre à {{ commentaire.auteur.username }}..." required>
+                                    <button type="submit" class="btn btn-outline-info">Envoyer</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- AFFICHAGE DES RÉPONSES -->
+                        {% for reponse in commentaire.reponses.all %}
+                            <div class="d-flex mt-3 ms-5">
+                                {% if reponse.auteur.profil.avatar %}
+                                    <img src="{{ reponse.auteur.profil.avatar.url }}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                                {% endif %}
+                                <div class="flex-grow-1">
+                                    <div class="bg-dark p-2 rounded border border-secondary">
+                                        <h6 class="text-white mb-0" style="font-size: 0.9rem;">
+                                            <a href="{% url 'blog:profil' reponse.auteur.username %}" class="text-decoration-none text-info">{{ reponse.auteur.username }}</a>
+                                        </h6>
+                                        <p class="text-light mb-0" style="font-size: 0.9rem;">{{ reponse.contenu }}</p>
+                                    </div>
+                                    <small class="text-muted ms-1">{{ reponse.date_creation|date:"d M Y à H:i" }}</small>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <p class="text-muted">Soyez le premier à commenter !</p>
+        {% endfor %}
+
+        <!-- Formulaire d'ajout de commentaire principal -->
+        {% if user.is_authenticated %}
+            <form method="post" class="mt-4">
+                {% csrf_token %}
+                <div class="d-flex">
+                    {% if user.profil.avatar %}
+                        <img src="{{ user.profil.avatar.url }}" class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;">
+                    {% endif %}
+                    <div class="flex-grow-1">
+                        <textarea name="contenu" class="form-control bg-dark text-white border-secondary" rows="2" placeholder="Écrivez un commentaire..." required></textarea>
+                        <button type="submit" class="btn btn-primary mt-2">Envoyer</button>
+                    </div>
+                </div>
+            </form>
+        {% else %}
+            <div class="alert alert-dark border-secondary mt-4">
+                <a href="{% url 'accounts:login' %}" class="alert-link">Connectez-vous</a> pour laisser un commentaire.
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Scripts JavaScript pour les likes -->
+    <script>
+        // Like de l'article
+        document.getElementById('btn-like').addEventListener('click', function() {
+            const slug = this.getAttribute('data-slug');
+            const btn = this;
+            fetch(`/article/${slug}/aimer/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('like-count').innerText = data.total_likes;
+                if (data.aime) { btn.classList.remove('text-light'); btn.classList.add('text-primary'); }
+                else { btn.classList.remove('text-primary'); btn.classList.add('text-light'); }
+            });
+        });
+
+        // Like des commentaires
+        document.querySelectorAll('.btn-like-comment').forEach(button => {
+            button.addEventListener('click', function() {
+                const id = this.getAttribute('data-id');
+                const btn = this;
+                fetch(`/commentaire/${id}/aimer/`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById(`comment-like-count-${id}`).innerText = data.total_likes;
+                    if (data.aime) { btn.classList.remove('text-light'); btn.classList.add('text-primary'); }
+                    else { btn.classList.remove('text-primary'); btn.classList.add('text-light'); }
+                });
+            });
+        });
+    </script>
+{% endblock %}

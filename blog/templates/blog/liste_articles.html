@@ -1,0 +1,102 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}Accueil - Mon Blog CMS{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4 text-white">Derniers articles</h1>
+    <div class="row">
+        {% for article in articles %}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 shadow-sm d-flex flex-column" style="border: none; background-color: #1e293b;">
+                    
+                    <!-- Image de couverture -->
+                    {% if article.image_couverture %}
+                        <img src="{{ article.image_couverture.url }}" class="card-img-top" alt="..." style="height: 200px; object-fit: cover;">
+                    {% endif %}
+                    
+                    <!-- Contenu de l'article -->
+                    <div class="card-body flex-grow-1">
+                        <h5 class="card-title text-white mb-2">{{ article.titre }}</h5>
+                        
+                        <!-- Auteur et date -->
+                        <div class="d-flex align-items-center mb-2 text-muted small">
+                            {% if article.auteur.profil.avatar %}
+                                <img src="{{ article.auteur.profil.avatar.url }}" class="rounded-circle me-2" style="width: 24px; height: 24px; object-fit: cover;">
+                            {% endif %}
+                            <span class="text-light">Par <a href="{% url 'blog:profil' article.auteur.username %}" class="text-decoration-none text-info">{{ article.auteur.username }}</a></span>
+                            <span class="ms-1">| {{ article.date_publication|date:"d M Y" }}</span>
+                        </div>
+                        
+                        <p class="card-text text-light">{{ article.contenu|truncatewords:15 }}</p>
+                    </div>
+                    
+                    <!-- BARRE DE RÉACTIONS -->
+                    <div class="card-footer bg-transparent border-secondary py-2">
+                        <div class="d-flex flex-nowrap justify-content-between align-items-center">
+                            
+                            <!-- Bouton J'aime -->
+                            <button class="btn btn-link text-decoration-none btn-like p-0 text-nowrap {% if request.user in article.likes.all %}text-primary{% else %}text-light{% endif %}" data-slug="{{ article.slug }}" style="font-size: 0.85rem;">
+                                <i class="bi bi-hand-thumbs-up"></i> J'aime <span class="like-count fw-bold">({{ article.likes.count }})</span>
+                            </button>
+                            
+                            <!-- Lien Commenter -->
+                            <a href="{% url 'blog:detail_article' article.slug %}" class="btn btn-link text-light text-decoration-none p-0 text-nowrap" style="font-size: 0.85rem;">
+                                <i class="bi bi-chat"></i> Commenter <span class="fw-bold">({{ article.nb_commentaires }})</span>
+                            </a>
+                            
+                            <!-- Bouton Partager (pas de compteur ici car on ne stocke pas les partages) -->
+                            <button class="btn btn-link text-light text-decoration-none p-0 text-nowrap" onclick="partager('{{ request.build_absolute_uri }}{% url 'blog:detail_article' article.slug %}')" style="font-size: 0.85rem;">
+                                <i class="bi bi-share"></i> Partager
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12">
+                <p class="text-light">Aucun article publié pour le moment.</p>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Script JavaScript -->
+    <script>
+        document.querySelectorAll('.btn-like').forEach(button => {
+            button.addEventListener('click', function() {
+                const slug = this.getAttribute('data-slug');
+                const btn = this;
+                const countSpan = btn.querySelector('.like-count');
+                
+                fetch(`/article/${slug}/aimer/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    countSpan.innerText = `(${data.total_likes})`;
+                    
+                    if (data.aime) {
+                        btn.classList.remove('text-light');
+                        btn.classList.add('text-primary');
+                    } else {
+                        btn.classList.remove('text-primary');
+                        btn.classList.add('text-light');
+                    }
+                });
+            });
+        });
+
+        function partager(url) {
+            if (navigator.share) {
+                navigator.share({ title: 'Mon Blog CMS', url: url }).catch(console.error);
+            } else {
+                navigator.clipboard.writeText(url).then(() => {
+                    alert('Lien copié dans le presse-papier !');
+                });
+            }
+        }
+    </script>
+{% endblock %}

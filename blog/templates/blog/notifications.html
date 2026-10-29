@@ -1,0 +1,38 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}Mes Notifications{% endblock %}
+
+{% block content %}
+    <div class="card p-4 mb-5">
+        <h2 class="text-white mb-4"><i class="bi bi-bell"></i> Mes Notifications</h2>
+        
+        <div class="list-group list-group-flush">
+            {% for notif in notifications %}
+                <div class="list-group-item bg-transparent text-light border-secondary mb-2 p-3 rounded" style="border: 1px solid #334155 !important;">
+                    <div class="d-flex align-items-center">
+                        {% if notif.expediteur.profil.avatar %}
+                            <img src="{{ notif.expediteur.profil.avatar.url }}" class="rounded-circle me-3" style="width: 45px; height: 45px; object-fit: cover;">
+                        {% endif %}
+                        <div class="flex-grow-1">
+                            <strong><a href="{% url 'blog:profil' notif.expediteur.username %}" class="text-info text-decoration-none fs-5">{{ notif.expediteur.username }}</a></strong> 
+                            <span class="fs-6">{{ notif.message }}</span>
+                            {% if notif.article %}
+                                <br>
+                                <a href="{% url 'blog:detail_article' notif.article.slug %}" class="text-info text-decoration-none small">
+                                    <i class="bi bi-link-45deg"></i> Voir l'article concerné
+                                </a>
+                            {% endif %}
+                            <br>
+                            <small class="text-muted">{{ notif.date_creation|date:"d M Y à H:i" }}</small>
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="text-center py-5">
+                    <i class="bi bi-bell-slash fs-1 text-muted"></i>
+                    <p class="text-muted mt-3">Aucune notification pour le moment.</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}
